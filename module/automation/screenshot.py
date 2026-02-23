@@ -58,7 +58,14 @@ class Screenshot:
     def take_screenshot(title, crop=(0, 0, 1, 1)):
         if cfg.cloud_game_enable:
             from module.game import cloud_game
-            screenshot = Image.open(BytesIO(cloud_game.take_screenshot()))
+            raw = cloud_game.take_screenshot()
+            if not raw:
+                raise RuntimeError("云游戏截图为空")
+            try:
+                screenshot = Image.open(BytesIO(raw))
+                screenshot.load()
+            except Exception as e:
+                raise RuntimeError(f"云游戏截图解码失败，len={len(raw)}") from e
             width, height = screenshot.size
 
             left = int(width * crop[0])

@@ -233,7 +233,10 @@ class CloudGameController(GameControllerBase):
             ]
             if is_docker_started():
                 # Docker 环境下需要额外参数
-                args.append("--no-sandbox")
+                args += [
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                ]
         if self.cfg.cloud_game_fullscreen_enable and not headless:
             args.append("--start-fullscreen")  # 全屏启动
         args.extend(self.cfg.browser_launch_argument)  # 用户自定义参数
@@ -945,6 +948,60 @@ class CloudGameController(GameControllerBase):
         """浏览器内截图"""
         if not self.driver:
             return None
+
+        def _is_valid_png(data: bytes) -> bool:
+            return bool(data) and data.startswith(b"\x89PNG\r\n\x1a\n")
+
+        def _capture_once() -> bytes:
+            # 仅在 macOS 非 headless 模式下使用 CDP 截图，避免浏览器被切换到前台
+            if not self.cfg.browser_headless_enable and platform.system() == "Darwin":
+                # Chrome/Chromium 在非 headless 模式下调用 get_screenshot_as_png() 时，
+                # 会先确保窗口“可见且未被遮挡”，否则截图内容可能为空或全黑。
+                # macOS 的窗口管理要求被截取的 NSWindow 处于前台/可见状态，
+                # Chromium 的实现会自动把窗口置前。
+                # 改用 CDP 截图接口可以避免这个问题。
+                try:
+                    result = self.driver.execute_cdp_cmd("Page.captureScreenshot", {"format": "png"})
+                    data = result.get("data") if result else None
+                    if data:
+                        raw = base64.b64decode(data)
+                        if _is_valid_png(raw):
+                            return raw
+                except Exception as e:
+                    self.log_warning(f"CDP 截图失败，回退 WebDriver 截图: {e}")
+            return self.driver.get_screenshot_as_png()
+
+        last_error = None
+        for attempt in range(2):
+            try:
+                raw = _capture_once()
+                if not _is_valid_png(raw):
+                    raise ValueError("截图数据无效")
+                return raw
+            except Exception as e:
+                last_error = e
+                msg = str(e)
+                should_restart = (
+                    attempt == 0
+                    and is_docker_started()
+                    and self.cfg.browser_headless_enable
+                    and (
+                        "tab crashed" in msg
+                        or "disconnected" in msg
+                        or "invalid session" in msg.lower()
+                        or "截图数据无效" in msg
+                    )
+                )
+                if should_restart:
+                    self.log_warning(f"截图失败：{e}，尝试重启浏览器后重试一次")
+                    try:
+                        self._restart_browser(headless=self.cfg.browser_headless_enable)
+                        continue
+                    except Exception as restart_e:
+                        self.log_warning(f"重启浏览器失败：{restart_e}")
+                raise
+
+        raise last_error
         # 仅在 macOS 非 headless 模式下使用 CDP 截图，避免浏览器被切换到前台
         if not self.cfg.browser_headless_enable and platform.system() == "Darwin":
             # Chrome/Chromium 在非 headless 模式下调用 get_screenshot_as_png() 时，
