@@ -36,7 +36,8 @@ class Instance:
                 log.hr(f"开始刷{instance_type} - {instance_name}，总计{runs}轮", 2)
 
             if cfg.instance_team_enable and "饰品提取" not in instance_type:
-                Team.change_to(cfg.instance_team_number)
+                team_number = Instance.get_target_team(instance_type, instance_name)
+                Team.change_to(team_number)
 
             if cfg.tp_before_instance:
                 Instance.heal_teams()
@@ -80,6 +81,17 @@ class Instance:
             log.info(f"{instance_type}未开启")
             return False
         return True
+
+    @staticmethod
+    def get_target_team(instance_type, instance_name):
+        """获取配置中自动切换目标队伍编号，按照副本名称匹配，无匹配项时返回全局 instance_team_number"""
+        teams = cfg.instance_teams
+
+        for team in teams:
+            if team["instance_name"] == instance_name:
+                return team["team_number"]
+
+        return cfg.instance_team_number
 
     @staticmethod
     def prepare_instance(instance_type, instance_name):
@@ -203,6 +215,10 @@ class Instance:
 
                 # 判断点击开始挑战是否成功，可能因缺少角色或背包满导致失败
                 if auto.find_element("仍有角色位空缺", "text", max_retries=1, crop=(481.0 / 1920, 361.0 / 1080, 955.0 / 1920, 356.0 / 1080), include=True):
+                    auto.click_element("./assets/images/zh_CN/base/confirm.png", "image", 0.9)
+                    time.sleep(0.5)
+
+                if auto.find_element("当前不存在任何存档，是否直接开始战斗", "text", include=True):
                     auto.click_element("./assets/images/zh_CN/base/confirm.png", "image", 0.9)
                     time.sleep(0.5)
 

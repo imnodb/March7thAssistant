@@ -2,8 +2,8 @@ from PySide6.QtCore import Qt, Signal, QUrl, QObject, QThread
 from PySide6.QtGui import QIcon, QKeyEvent
 from PySide6.QtWidgets import QPushButton
 from PySide6.QtGui import QDesktopServices
-from qfluentwidgets import SettingCard, FluentIconBase, InfoBar, InfoBarPosition
-from .messagebox_custom import MessageBoxEdit, MessageBoxEditCode, MessageBoxDate, MessageBoxInstance, MessageBoxInstanceChallengeCount, MessageBoxNotifyTemplate, MessageBoxTeam, MessageBoxFriends, MessageBoxPowerPlan
+from qfluentwidgets import SettingCard, FluentIconBase, InfoBar, InfoBarPosition, SwitchButton, IndicatorPosition
+from .messagebox_custom import MessageBoxEdit, MessageBoxEditCode, MessageBoxDate, MessageBoxInstance, MessageBoxInstanceChallengeCount, MessageBoxNotifyTemplate, MessageBoxTeam, MessageBoxFriends, MessageBoxPowerPlan, MessageBoxInstanceTeam
 from tasks.base.tasks import start_task
 from module.config import cfg
 from typing import Union
@@ -23,7 +23,7 @@ def get_key_from_value(val, map):
     return None
 
 
-class PushSettingCard(SettingCard):
+class CustomPushSettingCard(SettingCard):
     clicked = Signal()
 
     def __init__(self, text, icon: Union[str, QIcon, FluentIconBase], title, configname, configvalue, parent=None):
@@ -35,7 +35,7 @@ class PushSettingCard(SettingCard):
         self.hBoxLayout.addSpacing(16)
 
 
-class PushSettingCardStr(PushSettingCard):
+class PushSettingCardStr(CustomPushSettingCard):
     def __init__(self, text, icon: Union[str, QIcon, FluentIconBase], title, configname, parent=None):
         self.configvalue = str(cfg.get_value(configname))
         super().__init__(text, icon, title, configname, self.configvalue, parent)
@@ -113,7 +113,7 @@ class FetchLatestCodesWorker(QObject):
             self.finished.emit([], str(e))
 
 
-class PushSettingCardCode(PushSettingCard):
+class PushSettingCardCode(CustomPushSettingCard):
 
     def __init__(self, text, icon, title, configname, parent=None):
         self.parent = parent
@@ -321,7 +321,7 @@ class PushSettingCardCode(PushSettingCard):
         )
 
 
-class PushSettingCardEval(PushSettingCard):
+class PushSettingCardEval(CustomPushSettingCard):
     def __init__(self, text, icon: Union[str, QIcon, FluentIconBase], title, configname, parent=None):
         self.configvalue = str(cfg.get_value(configname))
         super().__init__(text, icon, title, configname, self.configvalue, parent)
@@ -334,7 +334,7 @@ class PushSettingCardEval(PushSettingCard):
             self.contentLabel.setText(message_box.getText())
 
 
-class PushSettingCardDate(PushSettingCard):
+class PushSettingCardDate(CustomPushSettingCard):
     def __init__(self, text, icon: Union[str, QIcon, FluentIconBase], title, configname, parent=None):
         self.configvalue = datetime.datetime.fromtimestamp(cfg.get_value(configname))
         super().__init__(text, icon, title, configname, self.configvalue.strftime('%Y-%m-%d %H:%M'), parent)
@@ -368,7 +368,7 @@ class PushSettingCardDate(PushSettingCard):
             self.contentLabel.setText(display_time.strftime('%Y-%m-%d %H:%M'))
 
 
-class PushSettingCardKey(PushSettingCard):
+class PushSettingCardKey(CustomPushSettingCard):
     def __init__(self, text, icon: Union[str, QIcon, FluentIconBase], title, configname, parent=None):
         self.configvalue = str(cfg.get_value(configname))
         super().__init__(text, icon, title, configname, self.configvalue, parent)
@@ -442,7 +442,7 @@ class PushSettingCardKey(PushSettingCard):
         return None
 
 
-class PushSettingCardInstance(PushSettingCard):
+class PushSettingCardInstance(CustomPushSettingCard):
     def __init__(self, text, icon: Union[str, QIcon, FluentIconBase], title, configname, parent=None):
         self.configvalue = cfg.get_value(configname)
         super().__init__(text, icon, title, configname, tr("说明：清体力是根据选择的副本类型来判断，副本名称也会用于双倍活动"), parent)
@@ -461,7 +461,7 @@ class PushSettingCardInstance(PushSettingCard):
             # self.contentLabel.setText(str(self.configvalue))
 
 
-class PushSettingCardInstanceChallengeCount(PushSettingCard):
+class PushSettingCardInstanceChallengeCount(CustomPushSettingCard):
     def __init__(self, text, icon: Union[str, QIcon, FluentIconBase], title, configname, parent=None):
         self.configvalue = cfg.get_value(configname)
         # super().__init__(text, icon, title, configname, str(self.configvalue), parent)
@@ -477,7 +477,7 @@ class PushSettingCardInstanceChallengeCount(PushSettingCard):
             # self.contentLabel.setText(str(self.configvalue))
 
 
-class PushSettingCardNotifyTemplate(PushSettingCard):
+class PushSettingCardNotifyTemplate(CustomPushSettingCard):
     def __init__(self, text, icon: Union[str, QIcon, FluentIconBase], title, configname, parent=None):
         self.configvalue = cfg.get_value(configname)
         super().__init__(text, icon, title, configname, "", parent)
@@ -491,7 +491,7 @@ class PushSettingCardNotifyTemplate(PushSettingCard):
             cfg.set_value(self.configname, self.configvalue)
 
 
-class PushSettingCardTeam(PushSettingCard):
+class PushSettingCardTeam(CustomPushSettingCard):
     def __init__(self, text, icon: Union[str, QIcon, FluentIconBase], title, configname, parent=None):
         self.template = get_character_names()
         self.configvalue = cfg.get_value(configname)
@@ -517,7 +517,7 @@ class PushSettingCardTeam(PushSettingCard):
             self.contentLabel.setText(self.translate_to_chinese(self.newConfigValue))
 
 
-class PushSettingCardFriends(PushSettingCard):
+class PushSettingCardFriends(CustomPushSettingCard):
     def __init__(self, text, icon: Union[str, QIcon, FluentIconBase], title, configname, parent=None):
         # include 'None' mapping for friends list
         self.template = get_character_names(include_none=True)
@@ -629,7 +629,7 @@ class PushSettingCardTeamWithSwap(SettingCard):
             self._update_display()
 
 
-class PushSettingCardPowerPlan(PushSettingCard):
+class PushSettingCardPowerPlan(CustomPushSettingCard):
     """体力计划设置卡片"""
 
     def __init__(self, text, icon: Union[str, QIcon, FluentIconBase], title, configname, parent=None):
@@ -650,3 +650,61 @@ class PushSettingCardPowerPlan(PushSettingCard):
             self.configvalue = plans
             cfg.set_value(self.configname, plans)
             self.contentLabel.setText(self._get_display_text())
+
+
+class InstanceTeamSettingCard(SettingCard):
+    """副本队伍设置卡片"""
+
+    checkedChanged = Signal(bool)
+
+    def __init__(self, icon: Union[str, QIcon, FluentIconBase], title, content=None, parent=None):
+        super().__init__(icon, title, content, parent)
+        self.card_title = title
+
+        self.configButton = QPushButton(tr("配置"), self)
+        self.hBoxLayout.addWidget(self.configButton, 0, Qt.AlignmentFlag.AlignRight)
+        self.hBoxLayout.addSpacing(10)
+        self.configButton.clicked.connect(self.__onConfigClicked)
+
+        self.switchButton = SwitchButton(tr("关"), self, IndicatorPosition.RIGHT)
+        self.setValue(cfg.get_value("instance_team_enable"))
+
+        self.hBoxLayout.addWidget(self.switchButton, 0, Qt.AlignmentFlag.AlignRight)
+        self.hBoxLayout.addSpacing(16)
+
+        self.switchButton.checkedChanged.connect(self.__onCheckedChanged)
+
+        self._update_content_text()
+
+    def __onCheckedChanged(self, isChecked: bool):
+        self.setValue(isChecked)
+        cfg.set_value("instance_team_enable", isChecked)
+
+    def setValue(self, isChecked: bool):
+        self.switchButton.setChecked(isChecked)
+        self.switchButton.setText(tr("开") if isChecked else tr("关"))
+
+    def _update_content_text(self):
+        self.contentLabel.show()
+
+        teams = cfg.get_value("instance_teams")
+        if teams:
+            self.contentLabel.setText(tr("已配置 {} 项规则").format(len(teams)))
+        else:
+            self.contentLabel.setText(tr("为特定的副本配置队伍"))
+
+    def __onConfigClicked(self):
+        """打开配置对话框"""
+        default_team = int(cfg.get_value("instance_team_number", 3))
+        teams = cfg.get_value("instance_teams", [])
+
+        message_box = MessageBoxInstanceTeam(self.card_title, default_team, teams, self.window())
+
+        if message_box.exec():
+            new_default_team = message_box.get_default_team()
+            cfg.set_value("instance_team_number", str(new_default_team))
+
+            new_teams = message_box.get_rules()
+            cfg.set_value("instance_teams", new_teams)
+
+            self._update_content_text()
